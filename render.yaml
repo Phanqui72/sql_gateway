@@ -1,0 +1,20 @@
+services:
+  # Tên dịch vụ của bạn trên Render
+  - name: smart-tomcat-app
+    # Loại dịch vụ là Web Service
+    type: web
+    # Môi trường để chạy ứng dụng (Docker)
+    env: docker
+    # Cấu hình tự động deploy khi có commit mới vào branch 'main'
+    autoDeploy: true
+    # Branch mà Render sẽ theo dõi để deploy
+    branch: main
+    # Cấu hình sức khỏe của ứng dụng (Health Check)
+    # Render sẽ kiểm tra đường dẫn này để đảm bảo ứng dụng của bạn đang chạy ổn định.
+    healthCheckPath: /
+    # Cài đặt biến môi trường
+    envVars:
+    # Bạn có thể định nghĩa các biến môi trường ở đây nếu cần.
+    # Ví dụ: nếu chuỗi kết nối DB cần được giữ bí mật.
+    # - key: DB_URL
+    #   value: jdbc:sqlserver://...
