@@ -1,20 +1,35 @@
-# Sử dụng một base image của Tomcat.
-# Chọn phiên bản Tomcat hỗ trợ Java 17 như trong file pom.xml của bạn.
-# Tomcat 10.1.x là lựa chọn tốt cho Jakarta EE 10 (phù hợp với các dependency jakarta.* của bạn).
+# --- STAGE 1: Build aplication with Maven ---
+# Sử dụng một image có sẵn Maven và JDK 17 để build dự án
+FROM maven:3.8-jdk-17 AS builder
+
+# Đặt thư mục làm việc bên trong container
+WORKDIR /app
+
+# Sao chép file pom.xml vào trước để tận dụng Docker cache.
+# Nếu file pom không đổi, các dependency sẽ không cần tải lại.
+COPY pom.xml .
+
+# Sao chép toàn bộ source code vào
+COPY src ./src
+
+# Chạy lệnh Maven để build dự án và tạo ra file .war
+# -DskipTests để bỏ qua việc chạy test, giúp build nhanh hơn
+RUN mvn package -DskipTests
+
+
+# --- STAGE 2: Run application with Tomcat ---
+# Sử dụng image Tomcat mà bạn đã chọn ban đầu
 FROM tomcat:10.1-jdk17-temurin
 
-# Ghi đè file cấu hình mặc định của Tomcat Manager để tránh các lỗi không cần thiết khi deploy.
-# Điều này giúp image gọn nhẹ hơn.
+# Xóa các ứng dụng mặc định của Tomcat
 RUN rm -rf /usr/local/tomcat/webapps/*
 
-# Đặt biến môi trường để thông báo cho Render biết ứng dụng sẽ lắng nghe ở cổng nào.
-# Tomcat mặc định chạy ở cổng 8080.
+# Đặt biến môi trường PORT cho Render
 ENV PORT 8080
 
-# Sao chép file .war đã được build bởi Maven vào thư mục webapps của Tomcat.
-# Maven sẽ build ra file tên là "your-webapp.war" dựa trên <finalName> trong pom.xml.
-# Chúng ta đổi tên nó thành "ROOT.war" để ứng dụng chạy ngay tại đường dẫn gốc (/).
-COPY target/your-webapp.war /usr/local/tomcat/webapps/ROOT.war
+# Sao chép file .war đã được build ở STAGE 1 (builder) vào thư mục webapps của Tomcat
+# Docker sẽ tự động tìm file này trong image của stage "builder"
+COPY --from=builder /app/target/your-webapp.war /usr/local/tomcat/webapps/ROOT.war
 
-# Lệnh để khởi động server Tomcat khi container được chạy.
+# Lệnh để khởi động server Tomcat
 CMD ["catalina.sh", "run"]
